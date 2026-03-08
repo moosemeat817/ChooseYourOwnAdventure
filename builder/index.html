@@ -1,0 +1,1127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TLD Challenge Builder</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #1a1714;
+    --parchment: #f0e8d8;
+    --parchment-dark: #e0d4bc;
+    --parchment-mid: #e8dcc8;
+    --frost: #c8dde8;
+    --frost-dark: #8aafc4;
+    --ember: #c4622a;
+    --ember-light: #e0845a;
+    --smoke: #6b6560;
+    --snow: #f8f4ee;
+    --border: #b8a888;
+    --border-dark: #8a7a60;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background-color: var(--ink);
+    color: var(--parchment);
+    font-family: 'Crimson Text', Georgia, serif;
+    font-size: 17px;
+    line-height: 1.5;
+    min-height: 100vh;
+    background-image: 
+      radial-gradient(ellipse at 20% 0%, #2a3a4a 0%, transparent 60%),
+      radial-gradient(ellipse at 80% 100%, #1e2820 0%, transparent 60%),
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+  }
+
+  /* Snowflake particles */
+  .snow-container {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    pointer-events: none; z-index: 0; overflow: hidden;
+  }
+  .flake {
+    position: absolute; top: -10px; color: rgba(200,221,232,0.3);
+    font-size: 10px; animation: fall linear infinite;
+    user-select: none;
+  }
+  @keyframes fall {
+    to { transform: translateY(110vh) rotate(360deg); opacity: 0; }
+  }
+
+  .container {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 40px 24px 80px;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Header */
+  header {
+    text-align: center;
+    margin-bottom: 48px;
+    padding-bottom: 32px;
+    border-bottom: 1px solid rgba(184,168,136,0.3);
+    position: relative;
+  }
+  header::after {
+    content: '❄';
+    position: absolute;
+    bottom: -12px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--ink);
+    padding: 0 12px;
+    color: var(--frost-dark);
+    font-size: 16px;
+  }
+  .title-eyebrow {
+    font-family: 'Crimson Text', serif;
+    font-size: 12px;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--frost-dark);
+    margin-bottom: 8px;
+  }
+  h1 {
+    font-family: 'Cinzel', serif;
+    font-size: clamp(28px, 5vw, 48px);
+    font-weight: 700;
+    color: var(--parchment);
+    letter-spacing: 0.05em;
+    line-height: 1.1;
+    text-shadow: 0 0 40px rgba(200,221,232,0.15);
+  }
+  h1 span { color: var(--frost-dark); }
+  .subtitle {
+    margin-top: 10px;
+    color: var(--smoke);
+    font-style: italic;
+    font-size: 15px;
+  }
+
+  /* Cards / Sections */
+  .card {
+    background: rgba(26,23,20,0.7);
+    border: 1px solid rgba(184,168,136,0.2);
+    border-radius: 2px;
+    padding: 28px 32px;
+    margin-bottom: 16px;
+    position: relative;
+    backdrop-filter: blur(4px);
+  }
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(200,221,232,0.2), transparent);
+  }
+  .card-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  .card-icon {
+    width: 28px; height: 28px;
+    background: rgba(200,221,232,0.08);
+    border: 1px solid rgba(200,221,232,0.15);
+    border-radius: 2px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px;
+    flex-shrink: 0;
+  }
+  .card-title {
+    font-family: 'Cinzel', serif;
+    font-size: 13px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--frost-dark);
+  }
+  .card-number {
+    font-family: 'Cinzel', serif;
+    font-size: 11px;
+    color: var(--smoke);
+    margin-left: auto;
+    letter-spacing: 0.08em;
+  }
+
+  /* Form elements */
+  .field-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+  .field-row.full { grid-template-columns: 1fr; }
+  .field-row.three { grid-template-columns: 1fr 1fr 1fr; }
+
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  label {
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--smoke);
+    font-family: 'Cinzel', serif;
+  }
+  label .required { color: var(--ember); margin-left: 2px; }
+
+  input[type="text"], input[type="number"], select, textarea {
+    background: rgba(10,8,6,0.6);
+    border: 1px solid rgba(184,168,136,0.25);
+    border-radius: 1px;
+    color: var(--parchment);
+    font-family: 'Crimson Text', serif;
+    font-size: 16px;
+    padding: 9px 12px;
+    width: 100%;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    appearance: none;
+  }
+  input:focus, select:focus, textarea:focus {
+    border-color: rgba(200,221,232,0.4);
+    box-shadow: 0 0 0 2px rgba(200,221,232,0.06);
+  }
+  select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%236b6560'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 32px;
+    cursor: pointer;
+  }
+  select option { background: #1a1714; }
+  textarea { resize: vertical; min-height: 72px; line-height: 1.5; }
+
+  input::placeholder, textarea::placeholder { color: rgba(107,101,96,0.6); font-style: italic; }
+
+  .hint {
+    font-size: 12px;
+    color: var(--smoke);
+    font-style: italic;
+    margin-top: 2px;
+  }
+
+  /* Conditional fields */
+  .conditional { display: none; }
+  .conditional.visible { display: contents; }
+
+  /* Objectives */
+  .objectives-list { display: flex; flex-direction: column; gap: 12px; }
+
+  .objective-item {
+    background: rgba(10,8,6,0.5);
+    border: 1px solid rgba(184,168,136,0.15);
+    border-left: 2px solid rgba(200,221,232,0.2);
+    border-radius: 1px;
+    padding: 20px 20px 16px;
+    position: relative;
+    animation: slideIn 0.2s ease;
+  }
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(-8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .objective-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+  .objective-label {
+    font-family: 'Cinzel', serif;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--frost-dark);
+    opacity: 0.7;
+  }
+  .objective-num {
+    background: rgba(200,221,232,0.08);
+    border: 1px solid rgba(200,221,232,0.12);
+    border-radius: 50%;
+    width: 20px; height: 20px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Cinzel', serif;
+    font-size: 10px;
+    color: var(--frost-dark);
+    flex-shrink: 0;
+  }
+  .btn-remove {
+    margin-left: auto;
+    background: none;
+    border: 1px solid rgba(196,98,42,0.25);
+    color: rgba(196,98,42,0.5);
+    border-radius: 1px;
+    padding: 2px 8px;
+    font-size: 11px;
+    font-family: 'Cinzel', serif;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-transform: uppercase;
+  }
+  .btn-remove:hover {
+    border-color: var(--ember);
+    color: var(--ember-light);
+    background: rgba(196,98,42,0.08);
+  }
+
+  /* Buttons */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    border-radius: 1px;
+    font-family: 'Cinzel', serif;
+    font-size: 12px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: none;
+    outline: none;
+  }
+  .btn-ghost {
+    background: transparent;
+    border: 1px solid rgba(184,168,136,0.3);
+    color: var(--parchment);
+  }
+  .btn-ghost:hover {
+    border-color: rgba(200,221,232,0.4);
+    background: rgba(200,221,232,0.05);
+  }
+  .btn-frost {
+    background: rgba(200,221,232,0.1);
+    border: 1px solid rgba(200,221,232,0.25);
+    color: var(--frost);
+  }
+  .btn-frost:hover {
+    background: rgba(200,221,232,0.18);
+    border-color: rgba(200,221,232,0.4);
+    box-shadow: 0 0 16px rgba(200,221,232,0.1);
+  }
+  .btn-ember {
+    background: rgba(196,98,42,0.15);
+    border: 1px solid rgba(196,98,42,0.35);
+    color: var(--ember-light);
+  }
+  .btn-ember:hover {
+    background: rgba(196,98,42,0.25);
+    border-color: var(--ember);
+    box-shadow: 0 0 16px rgba(196,98,42,0.15);
+  }
+  .btn-primary {
+    background: linear-gradient(135deg, rgba(200,221,232,0.15), rgba(200,221,232,0.08));
+    border: 1px solid rgba(200,221,232,0.35);
+    color: var(--frost);
+    padding: 13px 28px;
+    font-size: 13px;
+  }
+  .btn-primary:hover {
+    background: linear-gradient(135deg, rgba(200,221,232,0.22), rgba(200,221,232,0.12));
+    box-shadow: 0 0 24px rgba(200,221,232,0.12);
+  }
+
+  .actions-row {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: 8px;
+  }
+
+  /* Output */
+  .output-section {
+    margin-top: 32px;
+    display: none;
+  }
+  .output-section.visible { display: block; }
+
+  .json-display {
+    background: rgba(5,4,3,0.8);
+    border: 1px solid rgba(184,168,136,0.2);
+    border-radius: 2px;
+    padding: 24px;
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    line-height: 1.7;
+    color: var(--parchment-mid);
+    white-space: pre;
+    overflow-x: auto;
+    position: relative;
+  }
+  .json-key { color: var(--frost-dark); }
+  .json-string { color: #a8c88a; }
+  .json-number { color: #c8a87a; }
+  .json-bool { color: var(--ember-light); }
+  .json-null { color: var(--smoke); }
+
+  .copy-btn {
+    position: absolute;
+    top: 12px; right: 12px;
+    background: rgba(200,221,232,0.08);
+    border: 1px solid rgba(200,221,232,0.15);
+    color: var(--frost-dark);
+    border-radius: 1px;
+    padding: 4px 10px;
+    font-family: 'Cinzel', serif;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .copy-btn:hover { background: rgba(200,221,232,0.15); }
+  .copy-btn.copied { color: #a8c88a; border-color: rgba(168,200,138,0.3); }
+
+  /* Divider */
+  .divider {
+    border: none;
+    border-top: 1px solid rgba(184,168,136,0.12);
+    margin: 8px 0 20px;
+  }
+
+  /* Validation */
+  .validation-msg {
+    background: rgba(196,98,42,0.1);
+    border: 1px solid rgba(196,98,42,0.25);
+    border-radius: 1px;
+    padding: 10px 14px;
+    font-size: 14px;
+    color: var(--ember-light);
+    margin-bottom: 16px;
+    display: none;
+  }
+  .validation-msg.visible { display: block; }
+
+  /* Chain indicator */
+  .chain-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: rgba(200,221,232,0.06);
+    border: 1px solid rgba(200,221,232,0.12);
+    border-radius: 2px;
+    padding: 3px 8px;
+    font-size: 11px;
+    font-family: 'Cinzel', serif;
+    letter-spacing: 0.08em;
+    color: var(--frost-dark);
+    margin-left: 8px;
+  }
+
+  /* Footer */
+  footer {
+    text-align: center;
+    margin-top: 60px;
+    padding-top: 24px;
+    border-top: 1px solid rgba(184,168,136,0.12);
+    color: var(--smoke);
+    font-size: 13px;
+    font-style: italic;
+  }
+
+  @media (max-width: 600px) {
+    .field-row { grid-template-columns: 1fr; }
+    .field-row.three { grid-template-columns: 1fr 1fr; }
+    .card { padding: 20px 18px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="snow-container" id="snowContainer"></div>
+
+<div class="container">
+
+  <header>
+    <div class="title-eyebrow">The Long Dark · Mod Tools</div>
+    <h1>Challenge <span>Builder</span></h1>
+    <p class="subtitle">Craft sandbox challenges without writing a line of code</p>
+  </header>
+
+  <!-- IDENTITY -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon">📜</div>
+      <div class="card-title">Identity</div>
+      <div class="card-number">01</div>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Challenge ID <span class="required">*</span></label>
+        <input type="text" id="challengeId" placeholder="e.g. forlorn_cache" oninput="sanitizeId(this)">
+        <span class="hint">Unique key used internally. No spaces.</span>
+      </div>
+      <div class="field">
+        <label>Display Name</label>
+        <input type="text" id="challengeName" placeholder="e.g. The Dead Drop">
+      </div>
+    </div>
+  </div>
+
+  <!-- TRIGGER -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon">⚡</div>
+      <div class="card-title">Trigger</div>
+      <div class="card-number">02</div>
+    </div>
+    <p class="hint" style="margin-bottom:16px;">What event starts this challenge?</p>
+
+    <div class="field-row">
+      <div class="field">
+        <label>Trigger Type <span class="required">*</span></label>
+        <select id="triggerType" onchange="onTriggerChange()">
+          <option value="">— Select —</option>
+          <optgroup label="Location">
+            <option value="scene_enter">Enter a Scene</option>
+            <option value="region_enter">Enter a Region</option>
+          </optgroup>
+          <optgroup label="Time">
+            <option value="days_survived">Days Survived (total)</option>
+            <option value="days_in_scene">Days in Current Scene</option>
+            <option value="time_of_day">Time of Day</option>
+            <option value="season">Season Begins</option>
+          </optgroup>
+          <optgroup label="Player Action">
+            <option value="item_picked_up">Item Picked Up</option>
+            <option value="item_crafted">Item Crafted</option>
+            <option value="fire_lit">First Fire Lit</option>
+            <option value="first_sleep">First Sleep</option>
+          </optgroup>
+          <optgroup label="Hunting">
+            <option value="animal_killed">Animal Killed</option>
+            <option value="animal_struggled">Survived a Struggle</option>
+          </optgroup>
+          <optgroup label="Chain">
+            <option value="challenge_complete">Another Challenge Completed</option>
+          </optgroup>
+        </select>
+      </div>
+      <div class="field">
+        <label>One-Time Only</label>
+        <select id="triggerOnce">
+          <option value="true">Yes — fires once, never again</option>
+          <option value="false">No — can re-trigger</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Scene enter -->
+    <div class="field-row conditional" id="t_scene">
+      <div class="field">
+        <label>Scene</label>
+        <select id="triggerScene">
+          <option value="">— Any Scene —</option>
+          <optgroup label="Pleasant Valley">
+            <option value="PlesantValleyA">Pleasant Valley</option>
+            <option value="PlesantValleyB">Pleasant Valley (B)</option>
+          </optgroup>
+          <optgroup label="Coastal Highway">
+            <option value="CoastalHighwayA">Coastal Highway</option>
+          </optgroup>
+          <optgroup label="Mystery Lake">
+            <option value="MysteryLakeA">Mystery Lake</option>
+          </optgroup>
+          <optgroup label="Forlorn Muskeg">
+            <option value="ForlornMuskegA">Forlorn Muskeg</option>
+          </optgroup>
+          <optgroup label="Desolation Point">
+            <option value="DesolationPointA">Desolation Point</option>
+          </optgroup>
+          <optgroup label="Timberwolf Mountain">
+            <option value="TimberWolfMountainA">Timberwolf Mountain</option>
+          </optgroup>
+          <optgroup label="Broken Railroad">
+            <option value="BrokenRailroadA">Broken Railroad</option>
+          </optgroup>
+          <optgroup label="Bleak Inlet">
+            <option value="BleakInletA">Bleak Inlet</option>
+          </optgroup>
+          <optgroup label="Ash Canyon">
+            <option value="AshCanyonA">Ash Canyon</option>
+          </optgroup>
+          <optgroup label="Hushed River Valley">
+            <option value="HushedRiverValleyA">Hushed River Valley</option>
+          </optgroup>
+          <optgroup label="Muskeg">
+            <option value="HighPlainA">High Plain (Muskeg)</option>
+          </optgroup>
+        </select>
+      </div>
+    </div>
+
+    <!-- Days survived -->
+    <div class="field-row conditional" id="t_days">
+      <div class="field">
+        <label>Minimum Days</label>
+        <input type="number" id="triggerDays" placeholder="e.g. 10" min="1">
+      </div>
+    </div>
+
+    <!-- Days in scene -->
+    <div class="field-row conditional" id="t_days_scene">
+      <div class="field">
+        <label>Days in Scene</label>
+        <input type="number" id="triggerDaysInScene" placeholder="e.g. 3" min="1">
+      </div>
+      <div class="field">
+        <label>Scene</label>
+        <select id="triggerDaysScene">
+          <option value="">— Any —</option>
+          <option value="ForlornMuskegA">Forlorn Muskeg</option>
+          <option value="MysteryLakeA">Mystery Lake</option>
+          <option value="CoastalHighwayA">Coastal Highway</option>
+          <option value="PlesantValleyA">Pleasant Valley</option>
+          <option value="TimberWolfMountainA">Timberwolf Mountain</option>
+          <option value="DesolationPointA">Desolation Point</option>
+          <option value="BleakInletA">Bleak Inlet</option>
+          <option value="AshCanyonA">Ash Canyon</option>
+          <option value="HushedRiverValleyA">Hushed River Valley</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Time of day -->
+    <div class="field-row conditional" id="t_time_of_day">
+      <div class="field">
+        <label>Time of Day</label>
+        <select id="triggerTimeOfDay">
+          <option value="dawn">Dawn</option>
+          <option value="day">Day</option>
+          <option value="dusk">Dusk</option>
+          <option value="night">Night</option>
+          <option value="midnight">Midnight</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Season -->
+    <div class="field-row conditional" id="t_season">
+      <div class="field">
+        <label>Season</label>
+        <select id="triggerSeason">
+          <option value="autumn">Autumn</option>
+          <option value="winter">Winter</option>
+          <option value="spring">Spring</option>
+          <option value="summer">Summer</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Item -->
+    <div class="field-row conditional" id="t_item">
+      <div class="field">
+        <label>Item Name / Gear ID</label>
+        <input type="text" id="triggerItem" placeholder="e.g. GEAR_Knife">
+        <span class="hint">Use the internal gear ID from the game files.</span>
+      </div>
+    </div>
+
+    <!-- Animal -->
+    <div class="field-row conditional" id="t_animal">
+      <div class="field">
+        <label>Animal Type</label>
+        <select id="triggerAnimal">
+          <option value="any">Any Animal</option>
+          <option value="wolf">Wolf</option>
+          <option value="timberwolf">Timber Wolf</option>
+          <option value="bear">Bear</option>
+          <option value="moose">Moose</option>
+          <option value="deer">Deer</option>
+          <option value="rabbit">Rabbit</option>
+          <option value="ptarmigan">Ptarmigan</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Chain trigger -->
+    <div class="field-row conditional" id="t_chain">
+      <div class="field">
+        <label>Challenge ID to watch</label>
+        <input type="text" id="triggerChainId" placeholder="e.g. forlorn_cache">
+        <span class="hint">The challenge that must complete before this one starts.</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- MESSAGES -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon">💬</div>
+      <div class="card-title">Messages</div>
+      <div class="card-number">03</div>
+    </div>
+
+    <div class="field-row full">
+      <div class="field">
+        <label>Start Message <span class="required">*</span></label>
+        <textarea id="startMessage" placeholder="Shown when the challenge begins…"></textarea>
+      </div>
+    </div>
+    <div class="field-row full">
+      <div class="field">
+        <label>Complete Message</label>
+        <textarea id="completeMessage" placeholder="Shown when all objectives are met…"></textarea>
+      </div>
+    </div>
+    <div class="field-row full">
+      <div class="field">
+        <label>Fail Message</label>
+        <textarea id="failMessage" placeholder="Optional — shown if a fail condition is triggered…"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- OBJECTIVES -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon">🎯</div>
+      <div class="card-title">Objectives</div>
+      <div class="card-number">04</div>
+    </div>
+    <p class="hint" style="margin-bottom:16px;">All objectives must be completed to finish the challenge. Add at least one.</p>
+
+    <div class="objectives-list" id="objectivesList"></div>
+
+    <div class="actions-row" style="margin-top:16px;">
+      <button class="btn btn-ghost" onclick="addObjective()">+ Add Objective</button>
+    </div>
+  </div>
+
+  <!-- FAIL CONDITIONS -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon">💀</div>
+      <div class="card-title">Fail Conditions</div>
+      <div class="card-number">05</div>
+    </div>
+    <p class="hint" style="margin-bottom:16px;">Optional. If any condition is met the challenge fails.</p>
+
+    <div class="field-row three">
+      <div class="field">
+        <label>Player Death</label>
+        <select id="failDeath">
+          <option value="false">No</option>
+          <option value="true">Yes — fail on death</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Time Limit (hours)</label>
+        <input type="number" id="failTimeLimit" placeholder="e.g. 72 — leave blank for none" min="1">
+      </div>
+      <div class="field">
+        <label>Leave Region / Scene</label>
+        <select id="failLeaveScene">
+          <option value="false">No</option>
+          <option value="true">Yes — must stay in trigger scene</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- ATMOSPHERE -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon">🌨</div>
+      <div class="card-title">Atmosphere</div>
+      <div class="card-number">06</div>
+    </div>
+    <p class="hint" style="margin-bottom:16px;">Optional. Environmental effects when the challenge starts.</p>
+
+    <div class="field-row">
+      <div class="field">
+        <label>Weather Override</label>
+        <select id="atmWeather">
+          <option value="">None</option>
+          <option value="clear">Clear</option>
+          <option value="partly_cloudy">Partly Cloudy</option>
+          <option value="overcast">Overcast</option>
+          <option value="light_snow">Light Snow</option>
+          <option value="blizzard">Blizzard</option>
+          <option value="heavy_snow">Heavy Snow</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Weather Duration (hours)</label>
+        <input type="number" id="atmWeatherDuration" placeholder="e.g. 6" min="1">
+      </div>
+    </div>
+    <div class="field-row full">
+      <div class="field">
+        <label>Journal Entry (added on start)</label>
+        <textarea id="atmJournalEntry" placeholder="Optional text injected into the player's journal when the challenge begins…"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- GENERATE -->
+  <div class="validation-msg" id="validationMsg"></div>
+
+  <div class="actions-row" style="justify-content: center; margin-top: 8px;">
+    <button class="btn btn-primary" onclick="generateJSON()">
+      ❄ &nbsp;Generate Challenge File
+    </button>
+  </div>
+
+  <!-- OUTPUT -->
+  <div class="output-section" id="outputSection">
+    <div class="card" style="margin-top:0;">
+      <div class="card-header">
+        <div class="card-icon">✓</div>
+        <div class="card-title">Generated JSON</div>
+      </div>
+      <div class="json-display" id="jsonDisplay">
+        <button class="copy-btn" id="copyBtn" onclick="copyJSON()">Copy</button>
+        <code id="jsonCode"></code>
+      </div>
+      <div class="actions-row" style="margin-top:16px;">
+        <button class="btn btn-ember" onclick="downloadJSON()">↓ Download .json</button>
+        <button class="btn btn-ghost" onclick="resetForm()">↺ Start Over</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  <p>TLD Challenge Builder · Drop the downloaded file into your <code>Mods/Challenges/</code> folder</p>
+</footer>
+
+<script>
+// Snow
+(function(){
+  const container = document.getElementById('snowContainer');
+  for(let i=0;i<18;i++){
+    const f = document.createElement('div');
+    f.className='flake';
+    f.textContent='❄';
+    f.style.cssText=`left:${Math.random()*100}%;font-size:${6+Math.random()*8}px;opacity:${0.1+Math.random()*0.25};animation-duration:${8+Math.random()*16}s;animation-delay:${-Math.random()*20}s`;
+    container.appendChild(f);
+  }
+})();
+
+// Trigger type conditional fields
+const triggerConditionals = {
+  scene_enter: ['t_scene'],
+  region_enter: ['t_scene'],
+  days_survived: ['t_days'],
+  days_in_scene: ['t_days_scene'],
+  time_of_day: ['t_time_of_day'],
+  season: ['t_season'],
+  item_picked_up: ['t_item'],
+  item_crafted: ['t_item'],
+  fire_lit: [],
+  first_sleep: [],
+  animal_killed: ['t_animal'],
+  animal_struggled: ['t_animal'],
+  challenge_complete: ['t_chain'],
+};
+
+function onTriggerChange(){
+  const val = document.getElementById('triggerType').value;
+  document.querySelectorAll('.conditional').forEach(el => el.classList.remove('visible'));
+  if(triggerConditionals[val]){
+    triggerConditionals[val].forEach(id => {
+      const el = document.getElementById(id);
+      if(el) el.classList.add('visible');
+    });
+  }
+}
+
+function sanitizeId(input){
+  input.value = input.value.toLowerCase().replace(/[^a-z0-9_]/g,'_');
+}
+
+// Objectives
+let objectiveCount = 0;
+
+const objectiveTypes = {
+  scene_enter: { label: 'Enter a Scene', fields: ['obj_scene','obj_once'] },
+  animal_killed: { label: 'Kill an Animal', fields: ['obj_animal','obj_animal_count','obj_animal_weapon','obj_animal_time','obj_animal_scene'] },
+  animal_harvested: { label: 'Harvest a Carcass', fields: ['obj_animal','obj_animal_count','obj_animal_scene'] },
+  item_collected: { label: 'Collect an Item', fields: ['obj_item','obj_item_qty'] },
+  item_crafted: { label: 'Craft an Item', fields: ['obj_item','obj_item_qty'] },
+  survive_days: { label: 'Survive X Days', fields: ['obj_days'] },
+  survive_days_in_scene: { label: 'Survive X Days in a Scene', fields: ['obj_days','obj_scene'] },
+  reach_condition: { label: 'Reach a Health/Condition State', fields: ['obj_condition','obj_condition_val'] },
+  light_fires: { label: 'Light X Fires', fields: ['obj_count'] },
+  no_kill: { label: 'Avoid Killing (constraint)', fields: ['obj_animal'] },
+};
+
+function buildObjectiveFields(id, type){
+  const defs = objectiveTypes[type]?.fields || [];
+  return defs.map(f => objectiveField(id, f)).join('');
+}
+
+function objectiveField(id, key){
+  const scenes = `<select id="obj_scene_${id}">
+    <option value="">— Any —</option>
+    <option value="ForlornMuskegA">Forlorn Muskeg</option>
+    <option value="MysteryLakeA">Mystery Lake</option>
+    <option value="CoastalHighwayA">Coastal Highway</option>
+    <option value="PlesantValleyA">Pleasant Valley</option>
+    <option value="TimberWolfMountainA">Timberwolf Mountain</option>
+    <option value="DesolationPointA">Desolation Point</option>
+    <option value="BleakInletA">Bleak Inlet</option>
+    <option value="AshCanyonA">Ash Canyon</option>
+    <option value="HushedRiverValleyA">Hushed River Valley</option>
+    <option value="BrokenRailroadA">Broken Railroad</option>
+  </select>`;
+
+  const animals = `<select id="obj_animal_${id}">
+    <option value="any">Any</option>
+    <option value="wolf">Wolf</option>
+    <option value="timberwolf">Timber Wolf</option>
+    <option value="bear">Bear</option>
+    <option value="moose">Moose</option>
+    <option value="deer">Deer</option>
+    <option value="rabbit">Rabbit</option>
+    <option value="ptarmigan">Ptarmigan</option>
+  </select>`;
+
+  const map = {
+    obj_scene: `<div class="field"><label>Scene</label>${scenes}</div>`,
+    obj_once: `<div class="field"><label>One Time</label><select id="obj_once_${id}"><option value="true">Yes</option><option value="false">No</option></select></div>`,
+    obj_animal: `<div class="field"><label>Animal</label>${animals}</div>`,
+    obj_animal_count: `<div class="field"><label>Quantity</label><input type="number" id="obj_animal_count_${id}" value="1" min="1"></div>`,
+    obj_animal_weapon: `<div class="field"><label>Weapon (optional)</label><select id="obj_animal_weapon_${id}"><option value="">Any</option><option value="rifle">Rifle</option><option value="bow">Bow</option><option value="knife">Knife (struggle)</option><option value="revolver">Revolver</option></select></div>`,
+    obj_animal_time: `<div class="field"><label>Time of Day (optional)</label><select id="obj_animal_time_${id}"><option value="">Any</option><option value="day">Day</option><option value="night">Night</option><option value="dawn">Dawn</option><option value="dusk">Dusk</option><option value="blizzard">During Blizzard</option></select></div>`,
+    obj_animal_scene: `<div class="field"><label>Location (optional)</label>${scenes.replace(/obj_scene_/g,'obj_animal_scene_')}</div>`,
+    obj_item: `<div class="field"><label>Item / Gear ID</label><input type="text" id="obj_item_${id}" placeholder="e.g. GEAR_Knife"></div>`,
+    obj_item_qty: `<div class="field"><label>Quantity</label><input type="number" id="obj_item_qty_${id}" value="1" min="1"></div>`,
+    obj_days: `<div class="field"><label>Number of Days</label><input type="number" id="obj_days_${id}" value="1" min="1"></div>`,
+    obj_count: `<div class="field"><label>Count</label><input type="number" id="obj_count_${id}" value="1" min="1"></div>`,
+    obj_condition: `<div class="field"><label>Condition</label><select id="obj_condition_${id}"><option value="health_above">Health Above %</option><option value="health_below">Health Below %</option><option value="hypothermic">Become Hypothermic</option><option value="well_fed">Well Fed</option><option value="exhausted">Exhausted</option></select></div>`,
+    obj_condition_val: `<div class="field"><label>Value (%)</label><input type="number" id="obj_condition_val_${id}" placeholder="e.g. 80" min="0" max="100"></div>`,
+  };
+  return map[key] || '';
+}
+
+function addObjective(){
+  objectiveCount++;
+  const id = objectiveCount;
+  const list = document.getElementById('objectivesList');
+  const div = document.createElement('div');
+  div.className = 'objective-item';
+  div.id = `objective_${id}`;
+
+  const typeOptions = Object.entries(objectiveTypes).map(([k,v])=>
+    `<option value="${k}">${v.label}</option>`
+  ).join('');
+
+  div.innerHTML = `
+    <div class="objective-header">
+      <div class="objective-num">${id}</div>
+      <div class="objective-label">Objective</div>
+      <button class="btn-remove" onclick="removeObjective(${id})">Remove</button>
+    </div>
+    <div class="field-row full" style="margin-bottom:14px;">
+      <div class="field">
+        <label>Description</label>
+        <input type="text" id="obj_desc_${id}" placeholder="Shown to the player in the journal…">
+      </div>
+    </div>
+    <div class="field-row" style="margin-bottom:12px;">
+      <div class="field">
+        <label>Objective Type</label>
+        <select id="obj_type_${id}" onchange="onObjectiveTypeChange(${id})">
+          ${typeOptions}
+        </select>
+      </div>
+    </div>
+    <div class="field-row" id="obj_fields_${id}">
+      ${buildObjectiveFields(id, Object.keys(objectiveTypes)[0])}
+    </div>
+  `;
+  list.appendChild(div);
+}
+
+function onObjectiveTypeChange(id){
+  const type = document.getElementById(`obj_type_${id}`).value;
+  const container = document.getElementById(`obj_fields_${id}`);
+  container.innerHTML = buildObjectiveFields(id, type);
+}
+
+function removeObjective(id){
+  const el = document.getElementById(`objective_${id}`);
+  if(el) el.remove();
+}
+
+function getVal(id){ const el=document.getElementById(id); return el?el.value.trim():''; }
+function getNumVal(id){ const v=getVal(id); return v?parseInt(v):null; }
+
+function buildObjectiveData(id){
+  const type = getVal(`obj_type_${id}`);
+  const desc = getVal(`obj_desc_${id}`);
+  const obj = { type, description: desc || undefined };
+
+  const g = (suffix) => getVal(`${suffix}_${id}`);
+  const gn = (suffix) => { const v=g(suffix); return v?parseInt(v):undefined; };
+
+  if(type==='scene_enter'){ const s=g('obj_scene'); if(s) obj.scene=s; obj.once=g('obj_once')==='true'; }
+  if(['animal_killed','animal_harvested','no_kill'].includes(type)){
+    const a=g('obj_animal'); if(a&&a!=='any') obj.animal=a; else obj.animal='any';
+    const c=gn('obj_animal_count'); if(c&&c>1) obj.quantity=c;
+  }
+  if(type==='animal_killed'){
+    const w=g('obj_animal_weapon'); if(w) obj.weapon=w;
+    const t=g('obj_animal_time'); if(t) obj.time=t;
+    const sc=g('obj_animal_scene_'+id)||g('obj_animal_scene'); if(sc) obj.scene=sc;
+  }
+  if(['item_collected','item_crafted'].includes(type)){
+    const item=g('obj_item'); if(item) obj.item=item;
+    const qty=gn('obj_item_qty'); if(qty&&qty>1) obj.quantity=qty;
+  }
+  if(['survive_days','survive_days_in_scene'].includes(type)){
+    const d=gn('obj_days'); if(d) obj.days=d;
+    if(type==='survive_days_in_scene'){ const s=g('obj_scene'); if(s) obj.scene=s; }
+  }
+  if(type==='reach_condition'){
+    const c=g('obj_condition'); if(c) obj.condition=c;
+    const v=gn('obj_condition_val'); if(v) obj.value=v;
+  }
+  if(type==='light_fires'){ const c=gn('obj_count'); if(c) obj.count=c; }
+
+  return obj;
+}
+
+function generateJSON(){
+  const id = getVal('challengeId');
+  const startMsg = getVal('startMessage');
+  const triggerType = getVal('triggerType');
+
+  // Validate
+  const errors = [];
+  if(!id) errors.push('Challenge ID is required.');
+  if(!triggerType) errors.push('A trigger type must be selected.');
+  if(!startMsg) errors.push('A start message is required.');
+
+  const objItems = document.querySelectorAll('.objective-item');
+  if(objItems.length === 0) errors.push('At least one objective is required.');
+
+  const validationEl = document.getElementById('validationMsg');
+  if(errors.length){
+    validationEl.textContent = errors.join(' ');
+    validationEl.classList.add('visible');
+    return;
+  }
+  validationEl.classList.remove('visible');
+
+  // Build trigger
+  const trigger = { type: triggerType, once: getVal('triggerOnce') === 'true' };
+  if(['scene_enter','region_enter'].includes(triggerType)){
+    const s=getVal('triggerScene'); if(s) trigger.scene=s;
+  }
+  if(triggerType==='days_survived'){ const d=getNumVal('triggerDays'); if(d) trigger.min_days=d; }
+  if(triggerType==='days_in_scene'){ const d=getNumVal('triggerDaysInScene'); if(d) trigger.days=d; const s=getVal('triggerDaysScene'); if(s) trigger.scene=s; }
+  if(triggerType==='time_of_day'){ trigger.time=getVal('triggerTimeOfDay'); }
+  if(triggerType==='season'){ trigger.season=getVal('triggerSeason'); }
+  if(['item_picked_up','item_crafted'].includes(triggerType)){ const i=getVal('triggerItem'); if(i) trigger.item=i; }
+  if(['animal_killed','animal_struggled'].includes(triggerType)){ const a=getVal('triggerAnimal'); if(a&&a!=='any') trigger.animal=a; }
+  if(triggerType==='challenge_complete'){ const c=getVal('triggerChainId'); if(c) trigger.challenge_id=c; }
+
+  // Build objectives
+  const objectives = [];
+  objItems.forEach(el => {
+    const idNum = parseInt(el.id.replace('objective_',''));
+    objectives.push(buildObjectiveData(idNum));
+  });
+
+  // Build fail conditions
+  const fail_conditions = [];
+  if(getVal('failDeath')==='true') fail_conditions.push({type:'player_death'});
+  const tl=getNumVal('failTimeLimit'); if(tl) fail_conditions.push({type:'time_limit',hours:tl});
+  if(getVal('failLeaveScene')==='true') fail_conditions.push({type:'leave_scene'});
+
+  // Atmosphere
+  const on_start = [];
+  const weather=getVal('atmWeather');
+  if(weather){ const dur=getNumVal('atmWeatherDuration'); on_start.push({type:'weather_override',weather,duration_hours:dur||undefined}); }
+  const journal=getVal('atmJournalEntry');
+  if(journal) on_start.push({type:'journal_entry',text:journal});
+
+  // Assemble
+  const output = { id };
+  const name=getVal('challengeName'); if(name) output.name=name;
+  output.trigger = trigger;
+  output.start_message = startMsg;
+  const cm=getVal('completeMessage'); if(cm) output.complete_message=cm;
+  const fm=getVal('failMessage'); if(fm) output.fail_message=fm;
+  output.objectives = objectives;
+  if(fail_conditions.length) output.fail_conditions=fail_conditions;
+  if(on_start.length) output.on_start=on_start;
+
+  // Clean undefined
+  const cleaned = JSON.parse(JSON.stringify(output));
+
+  displayJSON(cleaned);
+}
+
+function syntaxHighlight(json){
+  return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function(match){
+    let cls='json-number';
+    if(/^"/.test(match)){
+      if(/:$/.test(match)) cls='json-key';
+      else cls='json-string';
+    } else if(/true|false/.test(match)) cls='json-bool';
+    else if(/null/.test(match)) cls='json-null';
+    return `<span class="${cls}">${match}</span>`;
+  });
+}
+
+function displayJSON(data){
+  const jsonStr = JSON.stringify(data, null, 2);
+  document.getElementById('jsonCode').innerHTML = syntaxHighlight(jsonStr);
+  const output = document.getElementById('outputSection');
+  output.classList.add('visible');
+  output.scrollIntoView({behavior:'smooth', block:'start'});
+  window._lastJSON = jsonStr;
+  window._lastId = data.id;
+}
+
+function copyJSON(){
+  if(!window._lastJSON) return;
+  navigator.clipboard.writeText(window._lastJSON).then(()=>{
+    const btn = document.getElementById('copyBtn');
+    btn.textContent = 'Copied!';
+    btn.classList.add('copied');
+    setTimeout(()=>{ btn.textContent='Copy'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+
+function downloadJSON(){
+  if(!window._lastJSON) return;
+  const blob = new Blob([window._lastJSON], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `${window._lastId||'challenge'}.json`;
+  a.click();
+}
+
+function resetForm(){
+  document.querySelectorAll('input,textarea').forEach(el=>el.value='');
+  document.querySelectorAll('select').forEach(el=>el.selectedIndex=0);
+  document.getElementById('objectivesList').innerHTML='';
+  document.getElementById('outputSection').classList.remove('visible');
+  document.getElementById('validationMsg').classList.remove('visible');
+  document.querySelectorAll('.conditional').forEach(el=>el.classList.remove('visible'));
+  objectiveCount=0;
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+// Add one objective by default
+addObjective();
+</script>
+</body>
+</html>
