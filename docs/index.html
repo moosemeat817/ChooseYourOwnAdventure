@@ -434,6 +434,135 @@
     .field-row.three { grid-template-columns: 1fr 1fr; }
     .card { padding: 20px 18px; }
   }
+
+  /* Load panel */
+  .load-bar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin-bottom: 32px;
+    flex-wrap: wrap;
+  }
+  .load-label {
+    font-family: 'Cinzel', serif;
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--smoke);
+  }
+
+  /* Load modal overlay */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(10,8,6,0.85);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(3px);
+  }
+  .modal-overlay.visible { display: flex; }
+  .modal {
+    background: #1c1916;
+    border: 1px solid rgba(184,168,136,0.25);
+    border-radius: 2px;
+    padding: 32px;
+    width: 90%;
+    max-width: 560px;
+    position: relative;
+    box-shadow: 0 24px 80px rgba(0,0,0,0.7);
+    animation: modalIn 0.2s ease;
+  }
+  @keyframes modalIn {
+    from { opacity:0; transform: translateY(-16px) scale(0.97); }
+    to   { opacity:1; transform: translateY(0) scale(1); }
+  }
+  .modal-title {
+    font-family: 'Cinzel', serif;
+    font-size: 14px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--frost-dark);
+    margin-bottom: 20px;
+  }
+  .modal-close {
+    position: absolute;
+    top: 16px; right: 16px;
+    background: none;
+    border: none;
+    color: var(--smoke);
+    font-size: 18px;
+    cursor: pointer;
+    line-height: 1;
+    padding: 4px 8px;
+    transition: color 0.2s;
+  }
+  .modal-close:hover { color: var(--parchment); }
+
+  .load-drop-zone {
+    border: 1px dashed rgba(184,168,136,0.3);
+    border-radius: 2px;
+    padding: 32px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-bottom: 16px;
+    position: relative;
+  }
+  .load-drop-zone:hover, .load-drop-zone.dragover {
+    border-color: rgba(200,221,232,0.4);
+    background: rgba(200,221,232,0.04);
+  }
+  .load-drop-zone input[type="file"] {
+    position: absolute; inset: 0;
+    opacity: 0; cursor: pointer; width: 100%; height: 100%;
+  }
+  .drop-icon { font-size: 28px; margin-bottom: 8px; }
+  .drop-text { color: var(--smoke); font-size: 14px; font-style: italic; }
+  .drop-text strong { color: var(--parchment); font-style: normal; }
+
+  .load-divider {
+    display: flex; align-items: center; gap: 12px;
+    margin: 16px 0;
+    color: var(--smoke); font-size: 12px;
+    font-family: 'Cinzel', serif; letter-spacing: 0.1em; text-transform: uppercase;
+  }
+  .load-divider::before, .load-divider::after {
+    content: ''; flex: 1;
+    border-top: 1px solid rgba(184,168,136,0.15);
+  }
+
+  #pasteArea {
+    min-height: 120px;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+  }
+
+  .load-error {
+    background: rgba(196,98,42,0.1);
+    border: 1px solid rgba(196,98,42,0.25);
+    border-radius: 1px;
+    padding: 8px 12px;
+    font-size: 13px;
+    color: var(--ember-light);
+    margin-top: 10px;
+    display: none;
+  }
+  .load-error.visible { display: block; }
+
+  .load-success {
+    background: rgba(100,160,80,0.1);
+    border: 1px solid rgba(100,160,80,0.25);
+    border-radius: 1px;
+    padding: 8px 12px;
+    font-size: 13px;
+    color: #a8c88a;
+    margin-top: 10px;
+    display: none;
+  }
+  .load-success.visible { display: block; }
 </style>
 </head>
 <body>
@@ -448,7 +577,13 @@
     <p class="subtitle">Craft sandbox challenges without writing a line of code</p>
   </header>
 
-  <!-- IDENTITY -->
+  <!-- LOAD BAR -->
+  <div class="load-bar">
+    <span class="load-label">Have an existing challenge?</span>
+    <button class="btn btn-ghost" onclick="openLoadModal()" style="font-size:11px; padding:8px 16px;">
+      ↑ Load JSON to Edit
+    </button>
+  </div>
   <div class="card">
     <div class="card-header">
       <div class="card-icon">📜</div>
@@ -798,6 +933,35 @@
   <p>TLD Challenge Builder · Drop the downloaded file into your <code>Mods/Challenges/</code> folder</p>
 </footer>
 
+<!-- LOAD MODAL -->
+<div class="modal-overlay" id="loadModal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeLoadModal()">✕</button>
+    <div class="modal-title">📂 &nbsp;Load Existing Challenge</div>
+
+    <div class="load-drop-zone" id="dropZone">
+      <input type="file" accept=".json" id="fileInput" onchange="onFileSelected(event)">
+      <div class="drop-icon">📄</div>
+      <div class="drop-text"><strong>Click to browse</strong> or drag & drop your .json file here</div>
+    </div>
+
+    <div class="load-divider">or</div>
+
+    <div class="field" style="margin-bottom:12px;">
+      <label>Paste JSON directly</label>
+      <textarea id="pasteArea" placeholder='{ "id": "my_challenge", ... }'></textarea>
+    </div>
+
+    <div class="actions-row">
+      <button class="btn btn-frost" onclick="loadFromPaste()">Load Pasted JSON</button>
+      <button class="btn btn-ghost" onclick="closeLoadModal()">Cancel</button>
+    </div>
+
+    <div class="load-error" id="loadError"></div>
+    <div class="load-success" id="loadSuccess"></div>
+  </div>
+</div>
+
 <script>
 // Snow
 (function(){
@@ -1122,6 +1286,168 @@ function resetForm(){
 
 // Add one objective by default
 addObjective();
-</script>
+
+// ── Load JSON ──────────────────────────────────────────────
+
+function openLoadModal(){
+  document.getElementById('loadModal').classList.add('visible');
+  document.getElementById('loadError').classList.remove('visible');
+  document.getElementById('loadSuccess').classList.remove('visible');
+  document.getElementById('pasteArea').value = '';
+}
+
+function closeLoadModal(){
+  document.getElementById('loadModal').classList.remove('visible');
+}
+
+// Close on overlay click
+document.getElementById('loadModal').addEventListener('click', function(e){
+  if(e.target === this) closeLoadModal();
+});
+
+// Drag and drop
+const dropZone = document.getElementById('dropZone');
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.classList.remove('dragover');
+  const file = e.dataTransfer.files[0];
+  if(file) readFile(file);
+});
+
+function onFileSelected(e){
+  const file = e.target.files[0];
+  if(file) readFile(file);
+}
+
+function readFile(file){
+  if(!file.name.endsWith('.json')){
+    showLoadError('File must be a .json file.');
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      populateForm(data);
+    } catch(err) {
+      showLoadError('Could not parse JSON: ' + err.message);
+    }
+  };
+  reader.readAsText(file);
+}
+
+function loadFromPaste(){
+  const text = document.getElementById('pasteArea').value.trim();
+  if(!text){ showLoadError('Nothing to load — paste your JSON above.'); return; }
+  try {
+    const data = JSON.parse(text);
+    populateForm(data);
+  } catch(err) {
+    showLoadError('Invalid JSON: ' + err.message);
+  }
+}
+
+function showLoadError(msg){
+  const el = document.getElementById('loadError');
+  el.textContent = msg;
+  el.classList.add('visible');
+  document.getElementById('loadSuccess').classList.remove('visible');
+}
+
+function showLoadSuccess(msg){
+  const el = document.getElementById('loadSuccess');
+  el.textContent = msg;
+  el.classList.add('visible');
+  document.getElementById('loadError').classList.remove('visible');
+}
+
+function setVal(id, val){ const el=document.getElementById(id); if(el&&val!==undefined&&val!==null) el.value=val; }
+function setSelect(id, val){ const el=document.getElementById(id); if(!el||val===undefined) return; for(let o of el.options){ if(o.value===String(val)){ el.value=String(val); break; } } }
+
+function populateForm(data){
+  // Reset first
+  document.querySelectorAll('input,textarea').forEach(el=>el.value='');
+  document.querySelectorAll('select').forEach(el=>el.selectedIndex=0);
+  document.getElementById('objectivesList').innerHTML='';
+  document.getElementById('outputSection').classList.remove('visible');
+  document.getElementById('validationMsg').classList.remove('visible');
+  document.querySelectorAll('.conditional').forEach(el=>el.classList.remove('visible'));
+  objectiveCount = 0;
+
+  // Identity
+  setVal('challengeId', data.id);
+  setVal('challengeName', data.name);
+
+  // Trigger
+  const t = data.trigger || {};
+  setSelect('triggerType', t.type);
+  onTriggerChange();
+  setSelect('triggerOnce', t.once !== undefined ? String(t.once) : 'true');
+
+  if(t.scene) { setSelect('triggerScene', t.scene); setSelect('triggerDaysScene', t.scene); }
+  if(t.min_days) setVal('triggerDays', t.min_days);
+  if(t.days)    setVal('triggerDaysInScene', t.days);
+  if(t.time)    setSelect('triggerTimeOfDay', t.time);
+  if(t.season)  setSelect('triggerSeason', t.season);
+  if(t.item)    setVal('triggerItem', t.item);
+  if(t.animal)  setSelect('triggerAnimal', t.animal);
+  if(t.challenge_id) setVal('triggerChainId', t.challenge_id);
+
+  // Messages
+  setVal('startMessage',    data.start_message);
+  setVal('completeMessage', data.complete_message);
+  setVal('failMessage',     data.fail_message);
+
+  // Objectives
+  const objectives = data.objectives || [];
+  objectives.forEach(obj => {
+    addObjective();
+    const id = objectiveCount;
+    setSelect(`obj_type_${id}`, obj.type);
+    onObjectiveTypeChange(id);
+    setVal(`obj_desc_${id}`, obj.description);
+
+    // Populate objective-specific fields
+    if(obj.scene)    { setSelect(`obj_scene_${id}`, obj.scene); setSelect(`obj_animal_scene_${id}`, obj.scene); }
+    if(obj.once !== undefined) setSelect(`obj_once_${id}`, String(obj.once));
+    if(obj.animal)   setSelect(`obj_animal_${id}`, obj.animal);
+    if(obj.quantity) setVal(`obj_animal_count_${id}`, obj.quantity);
+    if(obj.weapon)   setSelect(`obj_animal_weapon_${id}`, obj.weapon);
+    if(obj.time)     setSelect(`obj_animal_time_${id}`, obj.time);
+    if(obj.item)     setVal(`obj_item_${id}`, obj.item);
+    if(obj.quantity) setVal(`obj_item_qty_${id}`, obj.quantity);
+    if(obj.days)     setVal(`obj_days_${id}`, obj.days);
+    if(obj.count)    setVal(`obj_count_${id}`, obj.count);
+    if(obj.condition) setSelect(`obj_condition_${id}`, obj.condition);
+    if(obj.value)    setVal(`obj_condition_val_${id}`, obj.value);
+  });
+
+  // Fail conditions
+  const fails = data.fail_conditions || [];
+  fails.forEach(f => {
+    if(f.type === 'player_death')  setSelect('failDeath', 'true');
+    if(f.type === 'time_limit')    setVal('failTimeLimit', f.hours);
+    if(f.type === 'leave_scene')   setSelect('failLeaveScene', 'true');
+  });
+
+  // Atmosphere
+  const onStart = data.on_start || [];
+  onStart.forEach(a => {
+    if(a.type === 'weather_override'){
+      setSelect('atmWeather', a.weather);
+      if(a.duration_hours) setVal('atmWeatherDuration', a.duration_hours);
+    }
+    if(a.type === 'journal_entry') setVal('atmJournalEntry', a.text);
+  });
+
+  showLoadSuccess(`✓ "${data.name || data.id}" loaded successfully — make your changes and regenerate.`);
+
+  setTimeout(() => {
+    closeLoadModal();
+    window.scrollTo({top:0, behavior:'smooth'});
+  }, 1200);
+}</script>
 </body>
 </html>
